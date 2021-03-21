@@ -27,7 +27,7 @@ resource "kubernetes_deployment" "demokub" {
 
       spec {
         container {
-          image = "fabienzucchet/demo-kub"
+          image = "fabienzucchet/demo-kub:latest"
           name  = "demokub"
 
           resources {
@@ -40,7 +40,6 @@ resource "kubernetes_deployment" "demokub" {
               memory = "50Mi"
             }
           }
-
         }
       }
     }
