@@ -40,3 +40,6 @@ terraform.rc
 
 # Ignored vscode files
 .vscode/
+
+# Ignored registry secrets
+docker-registry.json
