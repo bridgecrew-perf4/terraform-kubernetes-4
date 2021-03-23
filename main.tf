@@ -29,3 +29,4 @@ resource "kubernetes_secret" "docker_pull_secret" {
 
   type = "kubernetes.io/dockercfg"
 }
+
