@@ -1,5 +1,17 @@
 # Deploy a leaderboard
 
+variable "auth_id" {
+  type = string
+}
+
+variable "auth_secret" {
+  type = string
+}
+
+variable "auth_redirect_uri" {
+  type = string
+}
+
 resource "kubernetes_deployment" "leaderboard_mysql" {
   metadata {
     name      = "leaderboard-mysql-deployment"
@@ -169,11 +181,26 @@ resource "kubernetes_deployment" "leaderboard_front" {
       spec {
 
         container {
-          image = "registry.viarezo.fr/cosx/leaderboard-front"
+          image = "registry.viarezo.fr/cosx/leaderboard-front:latest"
           name  = "leaderboard-front"
 
           port {
             container_port = 80
+          }
+
+          env {
+            name  = "API_HOST"
+            value = kubernetes_service.leaderboard_back.metadata.0.name
+          }
+
+          env {
+            name  = "API_PORT"
+            value = kubernetes_service.leaderboard_back.spec.0.port.0.port
+          }
+
+          env {
+            name  = "PROD"
+            value = true
           }
 
         }
@@ -202,5 +229,112 @@ resource "kubernetes_service" "leaderboard_front" {
     }
 
     type = "NodePort"
+  }
+}
+
+##### BACK #####
+
+resource "kubernetes_deployment" "leaderboard_back" {
+  metadata {
+    name      = "leaderboard-back-deployment"
+    namespace = kubernetes_namespace.terraform.metadata.0.name
+    labels = {
+      app  = "leaderboard"
+      tier = "back"
+    }
+  }
+
+  spec {
+    replicas = 1
+
+    selector {
+      match_labels = {
+        app  = "leaderboard"
+        tier = "back"
+      }
+    }
+
+    template {
+      metadata {
+        labels = {
+          app  = "leaderboard"
+          tier = "back"
+        }
+      }
+
+      spec {
+
+        container {
+          image = "registry.viarezo.fr/cosx/leaderboard-back:latest"
+          name  = "leaderboard-back"
+
+          port {
+            container_port = 8000
+          }
+
+          env {
+            name  = "MYSQL_HOST"
+            value = kubernetes_service.leaderboard_mysql.metadata.0.name
+          }
+
+          env {
+            name  = "MYSQL_DATABASE"
+            value = var.db_name
+          }
+
+          env {
+            name  = "MYSQL_USER"
+            value = var.db_user
+          }
+
+          env {
+            name  = "MYSQL_PASSWORD"
+            value = var.db_password
+          }
+
+          env {
+            name  = "AUTH_ID"
+            value = var.auth_id
+          }
+
+          env {
+            name  = "AUTH_SECRET"
+            value = var.auth_secret
+          }
+
+          env {
+            name  = "AUTH_REDIRECT_URI"
+            value = var.auth_redirect_uri
+          }
+          env {
+            name  = "PROD"
+            value = true
+          }
+
+        }
+        image_pull_secrets {
+          name = kubernetes_secret.docker_pull_secret.metadata.0.name
+        }
+      }
+    }
+  }
+}
+
+resource "kubernetes_service" "leaderboard_back" {
+  metadata {
+    name      = "leaderboard-back-service"
+    namespace = kubernetes_namespace.terraform.metadata.0.name
+  }
+  spec {
+    selector = {
+      app  = kubernetes_deployment.leaderboard_back.metadata.0.labels.app
+      tier = kubernetes_deployment.leaderboard_back.metadata.0.labels.tier
+    }
+    port {
+      port = 8000
+
+    }
+
+    cluster_ip = "None"
   }
 }
