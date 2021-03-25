@@ -175,6 +175,10 @@ resource "kubernetes_deployment" "leaderboard_front" {
           port {
             container_port = 80
           }
+
+        }
+        image_pull_secrets {
+          name = kubernetes_secret.docker_pull_secret.metadata.0.name
         }
       }
     }
