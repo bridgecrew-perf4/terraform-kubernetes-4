@@ -24,7 +24,14 @@ resource "kubernetes_secret" "docker_pull_secret" {
   }
 
   data = {
-    ".dockercfg" = file("${path.module}/docker-registry.json")
+    ".dockercfg" = <<DOCKER
+  {
+    "${var.registry_name}": {
+        "username": "${var.registry_user}",
+        "password": "${var.registry_password}"
+    }
+}
+DOCKER
   }
 
   type = "kubernetes.io/dockercfg"
