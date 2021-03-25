@@ -135,3 +135,68 @@ resource "kubernetes_persistent_volume_claim" "leaderboard_mysql" {
     volume_name = kubernetes_persistent_volume.leaderboard_mysql.metadata.0.name
   }
 }
+
+##### FRONT #####
+
+resource "kubernetes_deployment" "leaderboard_front" {
+  metadata {
+    name      = "leaderboard-front-deployment"
+    namespace = kubernetes_namespace.terraform.metadata.0.name
+    labels = {
+      app  = "leaderboard"
+      tier = "front"
+    }
+  }
+
+  spec {
+    replicas = 1
+
+    selector {
+      match_labels = {
+        app  = "leaderboard"
+        tier = "front"
+      }
+    }
+
+    template {
+      metadata {
+        labels = {
+          app  = "leaderboard"
+          tier = "front"
+        }
+      }
+
+      spec {
+
+        container {
+          image = "registry.viarezo.fr/cosx/leaderboard-front"
+          name  = "leaderboard-front"
+
+          port {
+            container_port = 80
+          }
+        }
+      }
+    }
+  }
+}
+
+resource "kubernetes_service" "leaderboard_front" {
+  metadata {
+    name      = "leaderboard-front-service"
+    namespace = kubernetes_namespace.terraform.metadata.0.name
+  }
+  spec {
+    selector = {
+      app  = kubernetes_deployment.leaderboard_front.metadata.0.labels.app
+      tier = kubernetes_deployment.leaderboard_front.metadata.0.labels.tier
+    }
+    port {
+      port        = 80
+      node_port   = 30130
+      target_port = 80
+    }
+
+    type = "NodePort"
+  }
+}
